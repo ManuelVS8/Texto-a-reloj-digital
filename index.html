@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Texto a reloj digital</title>
+<link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/refs/heads/main/icono.ico">
+<style>
+/* ====== Reset & base ====== */
+* { box-sizing: border-box; margin:0; padding:0; }
+:root{
+    --blue:#001DFF;
+    --blue-dark:#04032B;
+    --blue-700:#1a3a5f;
+    --blue-600:#254fba;
+    --orange:#f59e42;
+    --orange-700:#e67e22;
+    --bg-grad-1:#1a3a5f;
+    --bg-grad-2:#0d2340;
+    --white:#ffffff;
+    --green:#2ecc71;
+    --red:#e74c3c;
+    --panel:#E8EAFF;
+}
+body{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
+    min-height:100vh; color:#333; padding:10px;
+    display: block;
+}
+
+.game-container{
+    background:var(--white); border-radius:16px; box-shadow:0 12px 24px rgba(0,0,0,.12);
+    padding:1.2rem; max-width:980px; width:100%; min-height:600px; position:relative; overflow:hidden;
+    display:flex; flex-direction:column; margin: 20px auto;
+}
+
+header{ text-align:center; margin-bottom:.8rem; margin-top:1rem; }
+h1{ color:var(--blue-dark); font-size:clamp(2rem,5.2vw,3.1rem); font-weight:900; letter-spacing:.5px; }
+.subtitle{ color:var(--blue-700); font-size:clamp(1rem,3.5vw,1.25rem); margin-top:.25rem; }
+.highlight-keyword{ color:var(--orange); font-weight:800; }
+
+.btn{ color:#fff; border:none; padding:.75rem 1.2rem; border-radius:10px; cursor:pointer; font-weight:800;
+    transition:transform .08s ease, box-shadow .2s ease, background-color .25s ease; min-width:140px; height:48px;
+    display:inline-flex; align-items:center; justify-content:center; font-size: 1rem; }
+.btn:hover{ transform:translateY(-2px); box-shadow:0 6px 14px rgba(0,0,0,.12); }
+.btn:active{ transform:translateY(0); }
+.btn-primary{ background:var(--orange); }
+.btn-primary:hover{ background:var(--orange-700); color:#fff; }
+.btn-blue{ background:var(--blue-600); }
+.btn-blue:hover{ filter:brightness(.9); }
+.btn-ghost{ background:#e6f2ff; color:var(--blue-700); }
+.btn-green{ background: var(--green); }
+.btn-green:hover{ filter: brightness(.9); }
+
+.screen{ display:none; animation:fadeIn .35s ease; flex-direction: column; flex:1;}
+.screen.active{ display:flex; }
+@keyframes fadeIn{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:translateY(0);} }
+
+.shake { animation: doShake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes doShake {
+    10%, 90% { transform: translate3d(-4px, 0, 0); }
+    20%, 80% { transform: translate3d(8px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+    40%, 60% { transform: translate3d(8px, 0, 0); }
+}
+
+.start-content{ display:flex; flex-direction:column; justify-content:center; align-items:center; flex:1; gap:1rem; padding:1rem; }
+.advice-box{ background:var(--panel); border-left:4px solid var(--blue-700); padding:1rem 1.2rem; border-radius:12px;
+    color:var(--blue-700); max-width:760px; text-align:center; font-size:clamp(1rem,3vw,1.15rem); }
+.start-image{ max-width: 300px; width: 100%; margin: 1.5rem auto 0; }
+
+.mute-btn{ position:absolute; top:.8rem; right:1rem; background:var(--orange); color:#fff; border:2px solid #fff; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; z-index:20; }
+.mute-btn:hover{ background:var(--orange-700); }
+
+/* --- GAME ELEMENTS --- */
+.game-info{ display:flex; gap:.6rem; align-items:center; justify-content:space-between; margin:.4rem 0 1rem; flex-wrap:wrap; }
+.timer{ font-weight:900; color:var(--blue-700); font-size:clamp(.95rem,2.3vw,1.15rem); }
+.progress-bar{ flex:1; height:10px; background:#e6f2ff; border-radius:999px; overflow:hidden; position: relative; }
+.progress-fill{ height:100%; width:0%; background:linear-gradient(90deg, var(--orange) 0%, var(--orange-700) 100%); transition:width .3s ease; }
+
+.step-counter {
+    font-weight: 800;
+    color: var(--blue-700);
+    font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+    margin-left: 10px;
+    min-width: 40px;
+    text-align: right;
+}
+
+.level-badge{font-family:'Fredoka One',cursive;font-size:.88rem;background:var(--blue);
+  color:#fff;padding:5px 14px;border-radius:50px}
+
+/* TEXT DISPLAY */
+.text-display{font-family:'Fredoka One',cursive;font-size:clamp(1.8rem, 5vw, 2.6rem); font-weight:bold;
+  background:var(--panel);color:var(--blue-dark);padding:15px 30px;border-radius:15px;letter-spacing:1px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1); margin: 10px auto; text-align:center; border: 2px solid var(--blue-700);}
+
+/* INPUTS */
+.digit-group{display:flex;align-items:center;gap:6px;background:#141430;
+  padding:11px 20px;border-radius:15px;box-shadow:0 4px 20px rgba(0,0,0,.25);
+  font-family:'Courier New',monospace;font-size:2.2rem; margin: 10px auto;}
+.digit-input{width:52px;font-family:'Courier New',monospace;font-size:2rem;
+  text-align:center;background:transparent;color:#00ff99;border:none;
+  border-bottom:3px solid rgba(0,255,153,.3);outline:none;
+  caret-color:#00ff99;text-shadow:0 0 8px rgba(0,255,153,.6)}
+.digit-input::placeholder{color:rgba(0,255,153,.2)}
+.digit-input:disabled{ opacity: 0.7; cursor: not-allowed; }
+.digit-sep{color:#00ff99;text-shadow:0 0 8px rgba(0,255,153,.6)}
+
+/* FEEDBACK */
+.feedback-box{width:100%;padding:11px 16px;border-radius:13px;text-align:center;
+  font-size:.93rem;font-weight:700;display:none;margin-top:8px; max-width: 500px; margin-left:auto; margin-right:auto;
+  animation:feedPop .3s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes feedPop{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
+.feedback-box.correct{display:block;background:#e8f5e9;color:#1b5e20;border:2px solid #a5d6a7}
+.feedback-box.wrong{display:block;background:#ffebee;color:#b71c1c;border:2px solid #ef9a9a}
+
+/* ACTION ROW */
+.action-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:15px}
+.btn-sm{font-size:.9rem; padding: 8px 16px; height: 42px; min-width: 110px;}
+
+/* FINAL SCREEN */
+.results{ display:flex; flex-direction:column; align-items:center; gap:.6rem; text-align:center; flex:1; justify-content:center;}
+.final-title{ color:var(--blue-dark); font-weight:900; }
+.big-score{ font-size:clamp(2.2rem,6vw,3.4rem); color:var(--blue-600); font-weight:900; }
+.score-title{ font-size:1.0rem; color:var(--blue-700); margin-top:1rem; }
+.final-time{ color:var(--blue-700); }
+
+#trophyBox { 
+    display: none; 
+    font-size: clamp(4rem, 10vw, 7rem);
+    margin: .5rem 0;
+    text-align: center;
+    align-self: center;
+    animation: bounce 1s ease infinite;
+    color: var(--orange);
+    line-height: 1; 
+}
+
+@keyframes bounce { 
+    0%,100%{ transform: translateY(0) scale(1); } 
+    50%{ transform: translateY(-15px) scale(1.1); } 
+}
+
+.credit{ color:var(--blue-700); margin-top:1rem; }
+
+#finalMsg { font-size: clamp(1.2rem, 4.2vw, 1.8rem); font-weight: 800; color: var(--blue-700); margin-top: 0.6rem; }
+
+.school-logo { display: block; width: 160px; max-width: 28%; height: auto; margin-top: 0.8rem; border-radius: 8px; object-fit: contain; }
+@media (max-width: 899px) { .school-logo { width: 140px; max-width: 160px; } }
+@media (max-width: 420px) { .school-logo { width: 110px; max-width: 40%; margin-top: 0.6rem; } }
+
+/* TRAINING */
+.streak-pill{font-family:'Fredoka One',cursive;background:#fff8e1;color:#b8860b;
+  border:2px solid #ffe082;padding:5px 13px;border-radius:50px;font-size:.88rem}
+.streak-pill span{font-size:1.05rem;color:var(--orange)}
+
+/* --- ESTILOS DEL HALL OF FAME --- */
+.hall-of-fame { background: var(--panel); border-radius: 12px; padding: 1rem; margin-top: 1.5rem; width: 100%; max-width: 600px; }
+.hall-of-fame-title { color: var(--blue-700); font-weight: 800; font-size: 1.2rem; text-align: center; margin-bottom: 0.8rem; }
+.hall-of-fame-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.hall-of-fame-table th { background: var(--blue-600); color: white; padding: 0.5rem; text-align: left; }
+.hall-of-fame-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid #ddd; }
+.hall-of-fame-table tr:last-child td { border-bottom: none; }
+.hall-of-fame-table tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.5); }
+.hall-of-fame-error, .hall-of-fame-loading { padding: 1rem; text-align: center; color: var(--blue-700); font-style: italic; }
+.hall-of-fame-error { color: var(--red); }
+
+/* MODAL */
+.modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; z-index:1000; }
+.modal-content { background:white; padding:2rem; border-radius:15px; width:90%; max-width:400px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.3); }
+.modal-input { width:100%; padding:10px; margin:10px 0; border:2px solid #ddd; border-radius:8px; font-size:1rem; }
+
+/* CONFETTI */
+.confetti-container{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}
+.cp{position:absolute;top:-20px;animation:cfall linear forwards}
+@keyframes cfall{to{transform:translateY(110vh) rotate(900deg);opacity:0}}
+
+/* RESPONSIVE */
+@media(max-width:520px){
+  body{padding:10px 6px}
+  .game-container{padding:16px 12px}
+  h1{font-size:1.8rem}
+  .text-display{font-size:1.6rem;padding:10px 15px}
+  .digit-group{font-size:1.9rem;padding:9px 12px}
+  .digit-input{width:44px;font-size:1.8rem}
+  .btn{font-size:.97rem;padding:10px 24px}
+}
+</style>
+</head>
+<body>
+
+<div class="confetti-container" id="confetti-container"></div>
+
+<!-- Modal de envío de puntuación -->
+<div class="modal-overlay" id="submitModal">
+    <div class="modal-content">
+        <h2 style="color:var(--blue-dark); margin-bottom:10px;">¡Buen trabajo!</h2>
+        <p>Tiempo: <span id="modalTime"></span></p>
+        <input type="text" id="playerName" class="modal-input" placeholder="Nombre" maxlength="15">
+        <input type="text" id="playerSurname" class="modal-input" placeholder="Apellido" maxlength="15">
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+            <button class="btn btn-primary" id="submitScoreBtn">Guardar</button>
+            <button class="btn btn-ghost" id="discardScoreBtn">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div class="game-container">
+  <!-- ══════════ START SCREEN ══════════ -->
+  <section class="screen active" id="screen-start">
+    <button class="mute-btn" id="muteBtn" onclick="toggleSound()" title="Activar/desactivar sonido">🔊</button>
+    
+    <header>
+        <h1>Texto a reloj digital</h1>
+        <div class="subtitle">Escribe la hora en números</div>
+    </header>
+
+    <div class="start-content">
+        <div class="advice-box">
+            Lee la hora escrita en <span class="highlight-keyword">texto</span> y escríbela 
+            correctamente en el reloj <span class="highlight-keyword">digital</span>.
+            <strong style="display:block; margin-top:0.5rem; text-align:center;">¡Ánimo!</strong>
+        </div>
+        
+        <button class="btn btn-primary" id="playBtn" onclick="startGame()">Comenzar</button>
+        
+        <img class="start-image" src="https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/refs/heads/main/Ni%C3%B1os.png" alt="Niños aprendiendo">
+
+        <!-- HALL OF FAME -->
+        <div class="hall-of-fame" id="hallOfFame">
+            <div class="hall-of-fame-title">🏆 Mejores puntuaciones 🏆</div>
+            <table class="hall-of-fame-table">
+                <thead>
+                    <tr>
+                        <th>Posición</th>
+                        <th>Nombre</th>
+                        <th>Puntos</th>
+                        <th>Tiempo</th>
+                    </tr>
+                </thead>
+                <tbody id="hofTableBody">
+                    <!-- Contenido dinámico -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+  </section>
+
+  <!-- ══════════ GAME SCREEN ══════════ -->
+  <section class="screen" id="screen-game">
+    <header>
+        <h1 class="level-badge" style="background:var(--blue-dark); display:inline-block">⏰ Escribe la hora en digitales</h1>
+    </header>
+    <div class="game-info">
+        <div class="timer" id="timer-display">00:00</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="step-counter" id="step-counter">0/8</div>
+    </div>
+
+    <div style="text-align:center; font-weight:700; color:var(--blue-700); margin-bottom:10px;">
+        ¿Qué hora es?
+    </div>
+
+    <div class="text-display" id="text-display">las doce en punto</div>
+    
+    <div class="digit-group">
+      <input class="digit-input" id="input-h" type="text" maxlength="2" placeholder="HH" inputmode="numeric" autocomplete="off">
+      <span class="digit-sep">:</span>
+      <input class="digit-input" id="input-m" type="text" maxlength="2" placeholder="MM" inputmode="numeric" autocomplete="off">
+    </div>
+    
+    <div class="feedback-box" id="feedback-box"></div>
+    
+    <div class="action-row">
+      <button class="btn btn-green btn-sm" id="btn-check" onclick="checkAnswer()">✔ Comprobar</button>
+    </div>
+  </section>
+
+  <!-- ══════════ FINAL ══════════ -->
+  <section class="screen" id="screen-final">
+    <header>
+        <h1 class="final-title">Texto a Digital</h1>
+    </header>
+    <div class="results">
+        <div id="trophyBox">🏆</div>
+        
+        <div class="score-title">Puntuación:</div>
+        <div class="big-score" id="final-score">0</div>
+        
+        <div class="final-time">Tiempo empleado: <span id="final-time">00:00</span></div>
+        
+        <div id="finalMsg"></div>
+        
+        <div class="credit">Creado por Manuel J. Ventura</div>
+        <img class="school-logo" src="https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/refs/heads/main/Siurot.png" alt="Logo Colegio">
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:1.5rem; align-items:center;">
+            <button class="btn btn-primary" onclick="goHome()" style="width:200px;">Volver al menú</button>
+            <button class="btn btn-blue" onclick="startInfiniteTraining()" style="width:200px;">Entrenamiento infinito</button>
+        </div>
+    </div>
+  </section>
+
+  <!-- ══════════ TRAINING (INFINITE) ══════════ -->
+  <section class="screen" id="screen-training">
+    <header>
+        <h1 class="level-badge" style="background:var(--blue-600); display:inline-block">♾️ Entrenamiento Infinito</h1>
+    </header>
+    <div class="game-info">
+        <div class="streak-pill">Racha: <span id="streak-val">0</span> 🔥</div>
+    </div>
+
+    <div style="text-align:center; font-weight:700; color:var(--blue-700); margin-bottom:10px;">
+        Practica escribir la hora
+    </div>
+
+    <div class="text-display" id="train-text-display">las doce en punto</div>
+    
+    <div class="digit-group">
+      <input class="digit-input" id="train-input-h" type="text" maxlength="2" placeholder="HH" inputmode="numeric" autocomplete="off">
+      <span class="digit-sep">:</span>
+      <input class="digit-input" id="train-input-m" type="text" maxlength="2" placeholder="MM" inputmode="numeric" autocomplete="off">
+    </div>
+
+    <div class="feedback-box" id="train-feedback-box"></div>
+    
+    <div class="action-row">
+      <button class="btn btn-green btn-sm" id="train-btn-check" onclick="checkTraining()">✔ Comprobar</button>
+    </div>
+    <div style="text-align:center; margin-top:15px">
+        <button class="btn btn-ghost btn-sm" onclick="goToFinal()">← Salir</button>
+    </div>
+  </section>
+</div>
+
+<script>
+// ═══ CONFIGURACIÓN CRÍTICA ═══
+const SHEET_NAME = "escribe_digital";
+const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6wb6YF8hnqdQEOEjI9nM223_pTLijO1pqcGwoLGvFROIWnag93FliG3VVo8zvj8dU/exec";
+
+// ═══ AUDIO ═══
+let soundEnabled=true;
+const SFX={
+  correcto:'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/refs/heads/main/Correcto.mp3',
+  error:'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/refs/heads/main/Error.mp3',
+  completado:'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/refs/heads/main/Completado.mp3',
+  victoria:'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/refs/heads/main/Termin%C3%A9.mp3',
+  tap:'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/refs/heads/main/Tap.mp3'
+};
+let audioContext;
+function playSound(n){
+    if(!soundEnabled) return;
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    fetch(SFX[n])
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+        .then(audioBuffer => {
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            source.start();
+        }).catch(()=>{});
+}
+function toggleSound(){soundEnabled=!soundEnabled;document.getElementById('muteBtn').textContent=soundEnabled?'🔊':'🔇'; playSound('tap');}
+
+// ═══ TIMER ═══
+let timerStart=null,timerIv=null,timerSecs=0;
+function startTimer(){
+  timerSecs=0;timerStart=Date.now();
+  clearInterval(timerIv);
+  updateTimerDisplay();
+  timerIv=setInterval(updateTimerDisplay,1000);
+}
+function updateTimerDisplay(){
+  timerSecs=Math.floor((Date.now()-timerStart)/1000);
+  const t=fmtTime(timerSecs);
+  const el = document.getElementById('timer-display');
+  if(el) el.textContent = t;
+}
+function stopTimer(){clearInterval(timerIv);}
+function fmtTime(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+function formatTimeDetailed(sec) {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    const ms = Math.round((sec % 1) * 10);
+    return `${m}:${s}.${ms}`;
+}
+
+// ═══ STATE ═══
+const MINS=[0,5,10,15,20,25,30,35,40,45,50,55];
+const TOTAL_QUESTIONS = 8;
+const POINTS_PER_QUESTION = 100 / TOTAL_QUESTIONS; // 12.5
+
+let G={question:0, score:0, answered:false, streak:0, curH:0, curM:0};
+
+function rndTime(){return{h:Math.ceil(Math.random()*12),m:MINS[Math.floor(Math.random()*12)]};}
+
+// ═══ SPANISH TEXT LOGIC ═══
+const HR=['','una','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez','once','doce'];
+const MT={0:'en punto',5:'y cinco',10:'y diez',15:'y cuarto',20:'y veinte',25:'y veinticinco',
+  30:'y media',35:'menos veinticinco',40:'menos veinte',45:'menos cuarto',50:'menos diez',55:'menos cinco'};
+  
+function timeToText(h,m){
+  let dH=h;if(m>30){dH=(h%12)+1;if(dH>12)dH=1;}
+  const hN=HR[dH],mT=MT[m];
+  if(dH===1)return m===0?`la una en punto`:`la una ${mT}`;
+  return m===0?`las ${hN} en punto`:`las ${hN} ${mT}`;
+}
+
+// ═══ PROGRESS UI ═══
+function updateProgress(step){
+    const progress = (step / TOTAL_QUESTIONS) * 100;
+    const fill = document.getElementById('progress-fill');
+    const counter = document.getElementById('step-counter');
+    if(fill) fill.style.width = progress + '%';
+    if(counter) counter.textContent = `${step}/${TOTAL_QUESTIONS}`;
+}
+
+// ═══ SCREEN ═══
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+
+// ═══ SHAKE ═══
+function shake(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');
+  el.addEventListener('animationend',()=>el.classList.remove('shake'),{once:true});}
+
+// ═══ GAME LOGIC ═══
+function startGame(){
+  playSound('tap');
+  G.question = 0;
+  G.score = 0;
+  G.answered = false;
+  startTimer();
+  showScreen('screen-game');
+  loadQuestion();
+}
+
+function loadQuestion(){
+  const t = rndTime();
+  G.curH = t.h;
+  G.curM = t.m;
+  G.answered = false;
+
+  updateProgress(G.question);
+  
+  const timeText = timeToText(t.h, t.m);
+  document.getElementById('text-display').textContent = timeText;
+  
+  const inpH = document.getElementById('input-h');
+  const inpM = document.getElementById('input-m');
+  
+  inpH.value = '';
+  inpM.value = '';
+  inpH.disabled = false;
+  inpM.disabled = false;
+  
+  document.getElementById('feedback-box').className = 'feedback-box';
+  document.getElementById('btn-check').style.display = '';
+  
+  inpH.focus();
+}
+
+function checkAnswer(){
+  if(G.answered) return;
+
+  const hv = parseInt(document.getElementById('input-h').value);
+  const mv = parseInt(document.getElementById('input-m').value);
+  
+  const okH = hv===G.curH||(G.curH<12&&hv===G.curH+12)||(G.curH===12&&hv===0);
+  const ok = okH && mv === G.curM;
+  
+  G.answered = true;
+  
+  const fb = document.getElementById('feedback-box');
+  const hS = String(G.curH).padStart(2,'0');
+  const mS = String(G.curM).padStart(2,'0');
+  const alt = (G.curH+12<=23)?' o <strong>'+String(G.curH+12).padStart(2,'0')+':'+mS+'</strong>':'';
+
+  document.getElementById('input-h').disabled = true;
+  document.getElementById('input-m').disabled = true;
+  document.getElementById('btn-check').style.display = 'none';
+
+  if(ok){
+    G.score += POINTS_PER_QUESTION;
+    fb.className = 'feedback-box correct';
+    fb.innerHTML = `✅ ¡Correcto! La hora es <strong>${hS}:${mS}</strong>${alt}`;
+    playSound('correcto');
+    
+    if(G.question < TOTAL_QUESTIONS - 1){
+        setTimeout(()=>{
+            playSound('tap');
+            G.question++;
+            loadQuestion();
+        }, 1200);
+    } else {
+        setTimeout(finishGame, 1200);
+    }
+  } else {
+    fb.className = 'feedback-box wrong';
+    fb.innerHTML = `❌ Incorrecto. Debías escribir <strong>${hS}:${mS}</strong>${alt}`;
+    playSound('error');
+    shake(document.querySelector('#screen-game'));
+    
+    if(G.question < TOTAL_QUESTIONS - 1){
+        setTimeout(()=>{
+            playSound('tap');
+            G.question++;
+            loadQuestion();
+        }, 2500);
+    } else {
+        setTimeout(finishGame, 2500);
+    }
+  }
+}
+
+function finishGame() {
+    stopTimer();
+    showScreen('screen-final');
+    
+    const totalTime = (Date.now() - timerStart) / 1000;
+    const timeStr = fmtTime(timerSecs);
+    const finalScore = Math.round(G.score);
+    
+    document.getElementById('final-score').textContent = finalScore;
+    document.getElementById('final-time').textContent = timeStr;
+    
+    const trophy = document.getElementById('trophyBox');
+    const msg = document.getElementById('finalMsg');
+    
+    if(finalScore === 100){
+        trophy.style.display = 'block';
+        msg.textContent = '¡Enhorabuena, puntuación máxima!';
+        playSound('victoria');
+        launchConfetti(100);
+    } else {
+        trophy.style.display = 'none';
+        msg.textContent = '¡Buen trabajo! Sigue practicando';
+        playSound('completado');
+    }
+    
+    showSubmitModal(timeStr, finalScore);
+}
+
+function goHome(){
+    playSound('tap');
+    stopTimer();
+    showScreen('screen-start');
+}
+
+// ═══ TRAINING ═══
+function startInfiniteTraining(){
+  playSound('tap');
+  G.streak = 0;
+  G.answered = false;
+  showScreen('screen-training');
+  loadTrainingQuestion();
+}
+
+function loadTrainingQuestion(){
+  const t = rndTime();
+  G.curH = t.h;
+  G.curM = t.m;
+  G.answered = false;
+
+  document.getElementById('streak-val').textContent = G.streak;
+  
+  const timeText = timeToText(t.h, t.m);
+  document.getElementById('train-text-display').textContent = timeText;
+  
+  const inpH = document.getElementById('train-input-h');
+  const inpM = document.getElementById('train-input-m');
+  
+  inpH.value = '';
+  inpM.value = '';
+  inpH.disabled = false;
+  inpM.disabled = false;
+  
+  document.getElementById('train-feedback-box').className = 'feedback-box';
+  document.getElementById('train-btn-check').style.display = '';
+  
+  inpH.focus();
+}
+
+function checkTraining(){
+  if(G.answered) return;
+  
+  const hv = parseInt(document.getElementById('train-input-h').value);
+  const mv = parseInt(document.getElementById('train-input-m').value);
+  
+  const okH = hv===G.curH||(G.curH<12&&hv===G.curH+12)||(G.curH===12&&hv===0);
+  const ok = okH && mv === G.curM;
+  
+  G.answered = true;
+  
+  const fb = document.getElementById('train-feedback-box');
+  const hS = String(G.curH).padStart(2,'0');
+  const mS = String(G.curM).padStart(2,'0');
+  
+  document.getElementById('train-input-h').disabled = true;
+  document.getElementById('train-input-m').disabled = true;
+  document.getElementById('train-btn-check').style.display = 'none';
+  
+  if(ok){
+    G.streak++;
+    fb.className = 'feedback-box correct';
+    fb.innerHTML = `✅ ¡Correcto! <strong>${hS}:${mS}</strong>`;
+    playSound('correcto');
+  } else {
+    G.streak = 0;
+    fb.className = 'feedback-box wrong';
+    fb.innerHTML = `❌ Era <strong>${hS}:${mS}</strong>`;
+    playSound('error');
+    shake(document.querySelector('#screen-training'));
+  }
+  
+  document.getElementById('streak-val').textContent = G.streak;
+  
+  setTimeout(()=>{
+    playSound('tap');
+    loadTrainingQuestion();
+  }, ok ? 1200 : 2000);
+}
+
+function goToFinal(){
+    playSound('tap');
+    showScreen('screen-final');
+}
+
+// ═══ HALL OF FAME & API ═══
+let isHofLoading = false;
+
+function loadHallOfFame() {
+    if (isHofLoading) return;
+    isHofLoading = true;
+    
+    const tbody = document.getElementById('hofTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" class="hall-of-fame-loading">Cargando datos...</td></tr>';
+    
+    const url = `${APP_SCRIPT_URL}?action=read&sheet=${SHEET_NAME}`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    fetch(url, { signal: controller.signal })
+        .then(r => r.json())
+        .then(data => {
+            clearTimeout(timeoutId);
+            if (data.status === 'success' && data.data) {
+                tbody.innerHTML = '';
+                if (data.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">¡Sé el primero en guardar tu puntuación!</td></tr>';
+                    return;
+                }
+                
+                data.data.slice(0, 10).forEach((row, index) => {
+                    let name, surname, time, score;
+                    if (Array.isArray(row)) {
+                        name = row[1];
+                        surname = row[2];
+                        time = row[3];
+                        score = row[4];
+                    } else {
+                        name = row.name;
+                        surname = row.surname;
+                        time = row.time;
+                        score = row.score;
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${name} ${surname}</td>
+                        <td>${score}</td>
+                        <td>${formatTimeDetailed(time)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                throw new Error('Error en formato de datos');
+            }
+        })
+        .catch(e => {
+            tbody.innerHTML = '<tr><td colspan="4" class="hall-of-fame-error">Error al cargar HOF</td></tr>';
+            console.error(e);
+        })
+        .finally(() => {
+            isHofLoading = false;
+        });
+}
+
+function showSubmitModal(timeStr, score) {
+    document.getElementById('modalTime').textContent = timeStr;
+    document.getElementById('submitModal').style.display = 'flex';
+    document.getElementById('playerName').value = '';
+    document.getElementById('playerSurname').value = '';
+    document.getElementById('submitModal').dataset.score = score;
+    document.getElementById('submitModal').dataset.time = timerSecs; // Raw seconds
+    
+    setTimeout(() => document.getElementById('playerName').focus(), 100);
+}
+
+function submitScore() {
+    const name = document.getElementById('playerName').value.trim();
+    const surname = document.getElementById('playerSurname').value.trim();
+    const score = document.getElementById('submitModal').dataset.score;
+    const time = document.getElementById('submitModal').dataset.time;
+    
+    if (!name || !surname) {
+        playSound('error');
+        alert("Por favor, rellena nombre y apellido");
+        return;
+    }
+    
+    playSound('tap');
+    
+    const btn = document.getElementById('submitScoreBtn');
+    btn.textContent = "Enviando...";
+    btn.disabled = true;
+    
+    const payload = {
+        sheet: SHEET_NAME,
+        action: "write",
+        data: { score, time, name, surname }
+    };
+    
+    fetch(APP_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+    })
+    .then(() => {
+        setTimeout(() => {
+            document.getElementById('submitModal').style.display = 'none';
+            btn.textContent = "Guardar";
+            btn.disabled = false;
+            loadHallOfFame();
+        }, 1000);
+    })
+    .catch(e => {
+        alert("Error al guardar puntuación");
+        btn.textContent = "Guardar";
+        btn.disabled = false;
+    });
+}
+
+// ═══ CONFETTI ═══
+function launchConfetti(count){
+  const c=document.getElementById('confetti-container');
+  const cols=['#001DFF','#f59e42','#4a90d9','#43a047','#e91e63','#9c27b0','#00bcd4'];
+  for(let i=0;i<count;i++){
+    const p=document.createElement('div');p.className='cp';
+    p.style.cssText=`left:${Math.random()*100}vw;width:${Math.random()*10+5}px;
+      height:${Math.random()*10+5}px;background:${cols[Math.floor(Math.random()*cols.length)]};
+      border-radius:${Math.random()>.5?'50%':'3px'};animation-duration:${Math.random()*2.5+1.5}s;
+      animation-delay:${Math.random()*.8}s;transform:rotate(${Math.random()*360}deg);opacity:1;`;
+    c.appendChild(p);setTimeout(()=>p.remove(),5000);}
+}
+
+// ═══ INITIALIZATION ═══
+window.onload = () => {
+    loadHallOfFame();
+    
+    // Modal buttons
+    document.getElementById('submitScoreBtn').onclick = submitScore;
+    document.getElementById('discardScoreBtn').onclick = () => {
+        playSound('tap');
+        document.getElementById('submitModal').style.display = 'none';
+    };
+    
+    // Modal keyboard navigation
+    document.getElementById('playerName').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('playerSurname').focus();
+        }
+    });
+    
+    document.getElementById('playerSurname').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitScore();
+        }
+    });
+};
+
+// ═══ KEYBOARD LOGIC ═══
+// Game Inputs
+document.getElementById('input-h').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();if(!G.answered)checkAnswer();}
+  if(e.key==='Tab'){e.preventDefault();document.getElementById('input-m').focus();}
+});
+document.getElementById('input-h').addEventListener('input',function(){if(this.value.length===2)document.getElementById('input-m').focus();});
+
+document.getElementById('input-m').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();if(!G.answered)checkAnswer();}
+  // Backspace logic: if empty, go to hours and delete last char
+  if(e.key==='Backspace'){
+      const val = document.getElementById('input-m').value;
+      if(val.length === 0){
+          e.preventDefault();
+          const inpH = document.getElementById('input-h');
+          inpH.focus();
+          inpH.value = inpH.value.slice(0, -1);
+      }
+  }
+});
+
+// Training Inputs
+document.getElementById('train-input-h').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();if(!G.answered)checkTraining();}
+  if(e.key==='Tab'){e.preventDefault();document.getElementById('train-input-m').focus();}
+});
+document.getElementById('train-input-h').addEventListener('input',function(){if(this.value.length===2)document.getElementById('train-input-m').focus();});
+
+document.getElementById('train-input-m').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();if(!G.answered)checkTraining();}
+  // Backspace logic
+  if(e.key==='Backspace'){
+      const val = document.getElementById('train-input-m').value;
+      if(val.length === 0){
+          e.preventDefault();
+          const inpH = document.getElementById('train-input-h');
+          inpH.focus();
+          inpH.value = inpH.value.slice(0, -1);
+      }
+  }
+});
+
+</script>
+</body>
+</html>
